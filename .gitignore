@@ -1,0 +1,65 @@
+# Virtual environment
+venv/
+env/
+
+# Python bytecode files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# IntelliJ IDEA-specific files
+.idea/
+*.iml
+out/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Test coverage reports
+htmlcov/
+*.cover
+*.coverage
+.cache
+.nosetests
+coverage.xml
+*.hypothesis/
+
+# Distribution/build directories
+build/
+dist/
+*.egg-info/
+.eggs/
+*.wheel
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+.env.*
+
+# Tool-specific files
+.mypy_cache/
+.pytest_cache/
+.tox/
+.coverage
+
+# Linting and formatting
+*.pylint.d/
+*.mypy_cache/
+flake8.log
+
+# IDE backups and metadata
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Others
+# Any additional directories or files specific to your project setup
