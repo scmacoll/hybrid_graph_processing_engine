@@ -4,6 +4,7 @@ import gleam/float
 import gleam/dict
 import model/property_graph
 
+
 pub fn to_json(graph: property_graph.PropertyGraph) -> String {
   let nodes = property_graph.get_nodes(graph)
   let edges = property_graph.get_edges(graph)

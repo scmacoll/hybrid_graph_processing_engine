@@ -64,3 +64,4 @@ flake8.log
 # Others
 # Any additional directories or files specific to your project setup
 instructions.MD
+Gleam_Documentation.md
