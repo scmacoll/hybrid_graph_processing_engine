@@ -1,6 +1,5 @@
 import gleam/dict
 
-
 // Property value type
 pub type PropertyValue {
   StringValue(String)
@@ -14,27 +13,27 @@ dict.Dict(String, PropertyValue)
 // Node structure
 pub type Node {
   Node(
-    id: String,
-    node_type: String,
-    properties: Properties,
+  id: String,
+  node_type: String,
+  properties: Properties,
   )
 }
 
 // Edge structure
 pub type Edge {
   Edge(
-    from: String,
-    to: String,
-    label: String,
-    properties: Properties,
+  from: String,
+  to: String,
+  label: String,
+  properties: Properties,
   )
 }
 
 // Main property graph structure
 pub opaque type PropertyGraph {
   PropertyGraph(
-    nodes: dict.Dict(String, Node),
-    edges: List(Edge),
+  nodes: dict.Dict(String, Node),
+  edges: List(Edge),
   )
 }
 
@@ -47,8 +46,8 @@ pub fn new() -> PropertyGraph {
 pub fn add_node(graph: PropertyGraph, node: Node) -> PropertyGraph {
   let PropertyGraph(nodes, edges) = graph
   PropertyGraph(
-    nodes: dict.insert(nodes, node.id, node),
-    edges: edges,
+  nodes: dict.insert(nodes, node.id, node),
+  edges: edges,
   )
 }
 
@@ -57,8 +56,8 @@ pub fn add_edge(graph: PropertyGraph, edge: Edge) -> Result(PropertyGraph, Strin
   let PropertyGraph(nodes, edges) = graph
 
   case dict.has_key(nodes, edge.from), dict.has_key(nodes, edge.to) {
-      True, True -> Ok(PropertyGraph(nodes, [edge, ..edges]))
-      _, _ -> Error("Source or target node does not exist")
+    True, True -> Ok(PropertyGraph(nodes, [edge, ..edges]))
+    _, _ -> Error("Source or target node does not exist")
   }
 }
 
@@ -69,9 +68,9 @@ node_type: String,
 properties: List(#(String, PropertyValue))
 ) -> Node {
   Node(
-    id: id,
-    node_type: node_type,
-    properties: dict.from_list(properties)
+  id: id,
+  node_type: node_type,
+  properties: dict.from_list(properties)
   )
 }
 
@@ -83,9 +82,20 @@ label: String,
 properties: List(#(String, PropertyValue))
 ) -> Edge {
   Edge(
-    from: from,
-    to: to,
-    label: label,
-    properties: dict.from_list(properties)
+  from: from,
+  to: to,
+  label: label,
+  properties: dict.from_list(properties)
   )
+}
+
+// Accessor functions for opaque PropertyGraph
+pub fn get_nodes(graph: PropertyGraph) -> dict.Dict(String, Node) {
+  let PropertyGraph(nodes, _) = graph
+  nodes
+}
+
+pub fn get_edges(graph: PropertyGraph) -> List(Edge) {
+  let PropertyGraph(_, edges) = graph
+  edges
 }
