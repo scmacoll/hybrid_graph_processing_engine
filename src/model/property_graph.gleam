@@ -1,5 +1,6 @@
 import gleam/dict
 
+
 // Property value type
 pub type PropertyValue {
   StringValue(String)
@@ -98,4 +99,36 @@ pub fn get_nodes(graph: PropertyGraph) -> dict.Dict(String, Node) {
 pub fn get_edges(graph: PropertyGraph) -> List(Edge) {
   let PropertyGraph(_, edges) = graph
   edges
+}
+
+pub fn create_graph() -> PropertyGraph {
+  let graph = new()
+
+  let router1 = create_node(
+  "router_1",
+  "Router",
+  [#("status", StringValue("active"))]
+  )
+
+  let router2 = create_node(
+  "router_2",
+  "Router",
+  [#("status", StringValue("active"))]
+  )
+
+  let graph = graph
+  |> add_node(router1)
+  |> add_node(router2)
+
+  let connection = create_edge(
+  "router_1",
+  "router_2",
+  "CONNECTS_TO",
+  [#("bandwidth", NumberValue(1000.0))]
+  )
+
+  case add_edge(graph, connection) {
+    Ok(updated_graph) -> updated_graph
+    Error(_) -> graph
+  }
 }
