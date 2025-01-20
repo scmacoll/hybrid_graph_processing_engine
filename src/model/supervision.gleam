@@ -1,68 +1,74 @@
 import gleam/otp/actor
 import gleam/erlang/process
-import gleam/option.{None}
+import gleam/option.{type Option, None, Some}
+import gleam/io
 import model/query_engine
 import model/property_graph
 import model/triple_store
 
-// Define the state type for our actors
 pub type State {
-  State(Nil)
+  State(last_error: Option(String))
 }
 
-// Define our process types
-pub type ProcessType {
-  QueryProcessor
-  GraphTransformer
+pub type Message {
+  ExecuteQuery(
+  query: query_engine.Query,
+  prop_graph: property_graph.PropertyGraph,
+  triple_store: triple_store.TripleStore,
+  )
+  SimulateError(String)  // Added for user-triggered errors
 }
 
-// Message types for our processes
-pub type QueryMessage {
-  ExecuteQuery(query_engine.Query, property_graph.PropertyGraph, triple_store.TripleStore)
-  TransformGraph(property_graph.PropertyGraph)
-}
+pub fn start() -> Result(process.Subject(Message), actor.StartError) {
+  let init = fn() { actor.Ready(State(None), process.new_selector()) }
 
-// Start the application and supervise processes
-pub fn start() -> Result(process.Subject(QueryMessage), actor.StartError) {
-  let selector = process.new_selector()
-
-  // Create actor spec with QueryMessage type
-  let spec = actor.Spec(
-init: fn() -> actor.InitResult(State, QueryMessage) {
-  actor.Ready(State(Nil), selector)
-},
+actor.start_spec(actor.Spec(
+init: init,
 loop: handle_message,
-init_timeout: 5000
-)
-
-actor.start_spec(spec)
+init_timeout: 5000,
+))
 }
 
-// Message handler that processes QueryMessages
-fn handle_message(msg: QueryMessage, state: State) -> actor.Next(QueryMessage, State) {
+pub fn send_message(process: process.Subject(Message), msg: Message) -> Nil {
+  process.send(process, msg)
+}
+
+fn handle_message(msg: Message, _state: State) -> actor.Next(Message, State) {
   case msg {
   ExecuteQuery(query, prop_graph, triple_store) -> {
-let _ = query_engine.execute_query(query, prop_graph, triple_store)
-actor.Continue(state: state, selector: None)
+case try_execute_query(query, prop_graph, triple_store) {
+Ok(result) -> {
+io.println("Supervised query result:\n" <> result)
+actor.Continue(State(None), None)
 }
-TransformGraph(_) -> actor.Continue(state: state, selector: None)
+Error(error) -> {
+io.println("Query execution failed: " <> error)
+io.println("System recovered and ready for next query")
+actor.Continue(State(Some(error)), None)
+}
+}
+}
+SimulateError(error_message) -> {
+io.println("Simulated error: " <> error_message)
+io.println("System recovered and ready for next query")
+actor.Continue(State(Some(error_message)), None)
+}
 }
 }
 
-// Send a message to the appropriate process
-pub fn send_message(process_type: ProcessType, message: QueryMessage) -> Nil {
-  case process_type {
-    QueryProcessor -> send_to_query_processor(message)
-    GraphTransformer -> send_to_graph_transformer(message)
+fn try_execute_query(
+query: query_engine.Query,
+prop_graph: property_graph.PropertyGraph,
+triple_store: triple_store.TripleStore,
+) -> Result(String, String) {
+  // Handle both automatic and specific error cases
+  case query.query_string {
+    "INVALID_QUERY" -> Error("Simulated automatic query failure")
+    _ -> {
+      case query_engine.execute_query(query, prop_graph, triple_store) {
+        "" -> Error("Query execution failed")
+        result -> Ok(result)
+      }
+    }
   }
-}
-
-// Placeholder for sending to query processor
-fn send_to_query_processor(_message: QueryMessage) -> Nil {
-  Nil
-}
-
-// Placeholder for sending to graph transformer
-fn send_to_graph_transformer(_message: QueryMessage) -> Nil {
-  Nil
 }
