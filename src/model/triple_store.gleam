@@ -1,5 +1,6 @@
+import gleam/list
 import gleam/dict
-import model/property_graph
+
 
 // Define the core triple structure
 pub type Triple {
@@ -8,10 +9,9 @@ pub type Triple {
 
 // Value represents possible object types in our triples
 pub type Value {
-  // Reusing PropertyValue from property_graph
-  LiteralValue(property_graph.PropertyValue)
+  LiteralString(String)
+  LiteralNumber(Float)
   ResourceValue(String)
-  // References another resource by ID
 }
 
 // The main triple store structure
@@ -78,4 +78,57 @@ pub fn query_by_subject(store: TripleStore, subject: String) -> List(Triple) {
     Ok(triples) -> triples
     Error(_) -> []
   }
+}
+
+pub fn get_all_triples(store: TripleStore) -> List(Triple) {
+  let TripleStore(subject_index, _, _) = store
+
+  dict.values(subject_index)
+  |> list.flatten()
+}
+
+// Add create_graph function that mirrors the property graph example
+pub fn create_graph() -> TripleStore {
+  let store = new()
+
+  // Add router1 triples
+  let store = store
+    |> add_triple(Triple(
+      "router_1",
+      "type",
+      ResourceValue("Router"),
+    ))
+    |> add_triple(Triple(
+      "router_1",
+      "status",
+      LiteralString("active"),  // Using our internal StringValue
+    ))
+
+  // Add router2 triples
+  let store = store
+    |> add_triple(Triple(
+      "router_2",
+      "type",
+      ResourceValue("Router"),
+    ))
+    |> add_triple(Triple(
+      "router_2",
+      "status",
+      LiteralString("active"),
+    ))
+
+  // Add connection triple
+  let store = store
+    |> add_triple(Triple(
+      "router_1",
+      "CONNECTS_TO",
+      ResourceValue("router_2"),
+    ))
+    |> add_triple(Triple(
+      "router_1_to_router_2",
+      "bandwidth",
+      LiteralNumber(1000.0),
+    ))
+
+  store
 }
