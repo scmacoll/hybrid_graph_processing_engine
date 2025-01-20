@@ -14,8 +14,8 @@ pub fn main() {
 
   io.println("Original Property Graph Queries:")
   let queries = [
-  "cypher \"MATCH (n:Router) RETURN n\"",
-  "sparql \"SELECT ?router WHERE {?router rdf:type net:Router}\"",
+    "cypher \"MATCH (n:Router) RETURN n\"",
+    "sparql \"SELECT ?router WHERE {?router rdf:type net:Router}\"",
   ]
 
   list.map(queries, fn(query_string) {

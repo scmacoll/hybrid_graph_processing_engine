@@ -1,11 +1,10 @@
-
 import gleam/string
-import gleam/list
 import gleam/dict
+import gleam/list
+import gleam/float
 import model/property_graph
 import model/triple_store
 import model/graph_mapper
-
 
 pub type QueryType {
   Cypher
@@ -21,7 +20,6 @@ pub type UnifiedQuery {
   Relationships(from_type: String, rel_type: String, to_type: String)
 }
 
-
 pub fn parse_query(input: String) -> Result(Query, String) {
   let parts = string.split(string.trim(input), " ")
 
@@ -29,15 +27,15 @@ pub fn parse_query(input: String) -> Result(Query, String) {
     ["cypher", ..rest] -> {
       let query_string = string.join(rest, " ")
       |> string.trim()
-      |> string.drop_start(1)  // Remove leading quote
-      |> string.drop_end(1)    // Remove trailing quote
+      |> string.drop_start(1)
+      |> string.drop_end(1)
       Ok(Query(Cypher, query_string))
     }
     ["sparql", ..rest] -> {
       let query_string = string.join(rest, " ")
       |> string.trim()
-      |> string.drop_start(1)  // Remove leading quote
-      |> string.drop_end(1)    // Remove trailing quote
+      |> string.drop_start(1)
+      |> string.drop_end(1)
       Ok(Query(SPARQL, query_string))
     }
     _ -> Error("Invalid query format. Must start with 'cypher' or 'sparql'")
@@ -89,57 +87,108 @@ store: triple_store.TripleStore
 ) -> String {
   case string.contains(query, "rdf:type net:Router") {
     True -> {
-      let triples = triple_store.get_all_triples(store)
-        |> list.filter(fn(triple: triple_store.Triple) {
-          case triple {
-            triple_store.Triple(_, predicate, object) -> {
-              predicate == "type" &&
-              case object {
-                triple_store.ResourceValue("Router") -> True
-                _ -> False
-              }
+      // Find router nodes
+      let router_triples = triple_store.get_all_triples(store)
+      |> list.filter(fn(triple: triple_store.Triple) {
+        case triple {
+          triple_store.Triple(_, predicate, object) -> {
+            predicate == "type" &&
+            case object {
+              triple_store.ResourceValue("Router") -> True
+              _ -> False
             }
           }
-        })
-        |> list.map(fn(triple: triple_store.Triple) {
-          case triple {
-            triple_store.Triple(subject, _, _) -> "Router: " <> subject
-          }
-        })
-        |> string.join("\n")
+        }
+      })
 
-        "Found Routers:\n" <> triples
-      }
+      // Find relationship nodes
+      let relationship_triples = triple_store.get_all_triples(store)
+      |> list.filter(fn(triple: triple_store.Triple) {
+        case triple {
+          triple_store.Triple(_, predicate, object) -> {
+            predicate == "rdf:type" &&
+            case object {
+              triple_store.ResourceValue("Relationship") -> True
+              _ -> False
+            }
+          }
+        }
+      })
+
+      format_query_results(store, router_triples, relationship_triples)
+    }
     False -> "Query not supported in MVP"
   }
 }
 
-// Add unified query execution
+fn format_query_results(
+store: triple_store.TripleStore,
+router_triples: List(triple_store.Triple),
+relationship_triples: List(triple_store.Triple)
+) -> String {
+  let router_info = list.map(router_triples, fn(triple) {
+    case triple {
+      triple_store.Triple(subject, _, _) -> "Router Node: " <> subject
+    }
+  })
+
+  let relationship_info = list.map(relationship_triples, fn(triple) {
+    case triple {
+      triple_store.Triple(subject, _, _) -> {
+        // Get all triples for this relationship
+        let rel_triples = triple_store.get_all_triples(store)
+        |> list.filter(fn(t) { t.subject == subject })
+
+        let source = get_relationship_property(rel_triples, "hasSource")
+        let target = get_relationship_property(rel_triples, "hasTarget")
+        let rel_type = get_relationship_property(rel_triples, "type")
+
+        "Reified Relationship: " <> subject <>
+        "\n    Type: " <> rel_type <>
+        "\n    Source: " <> source <>
+        "\n    Target: " <> target
+      }
+    }
+  })
+
+  "Found Routers and Their Reified Relationships:\n" <>
+  string.join(list.append(router_info, relationship_info), "\n")
+}
+
+fn get_relationship_property(triples: List(triple_store.Triple), predicate: String) -> String {
+  case list.find(triples, fn(t) { t.predicate == predicate }) {
+    Ok(triple) -> {
+      case triple.object {
+        triple_store.ResourceValue(val) -> val
+        triple_store.LiteralString(val) -> val
+        triple_store.LiteralNumber(val) -> float.to_string(val)
+      }
+    }
+    Error(_) -> "unknown"
+  }
+}
+
 pub fn execute_unified_query(
-  query: UnifiedQuery,
-  graph: property_graph.PropertyGraph
+query: UnifiedQuery,
+graph: property_graph.PropertyGraph
 ) -> String {
   let store = graph_mapper.graph_to_triple_store(graph)
 
   case query {
     Nodes(node_type) -> {
-      // Keep property graph query the same
       let prop_results = execute_cypher_query(
-        "MATCH (n:" <> node_type <> ") RETURN n",
-        graph
+      "MATCH (n:" <> node_type <> ") RETURN n",
+      graph
       )
 
-      // Fix the SPARQL query format
       let triple_results = execute_sparql_query(
-        "SELECT ?router WHERE {?router rdf:type net:Router}",  // Using the format we know works
-        store
+      "SELECT ?router WHERE {?router rdf:type net:Router}",
+      store
       )
 
       "Property Graph Results:\n" <> prop_results <>
       "\nTriple Store Results:\n" <> triple_results
     }
-    Relationships(_from_type, _rel_type, _to_type) -> {
-      "Relationship queries not yet implemented"
-    }
+    Relationships(_, _, _) -> "Relationship queries not yet implemented"
   }
 }
