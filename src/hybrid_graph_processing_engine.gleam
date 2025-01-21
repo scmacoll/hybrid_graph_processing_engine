@@ -1,17 +1,21 @@
 // hybrid_graph_processing_engine.gleam
 import gleam/io
+import gleam/list
+import gleam/dict
 import gleam/erlang/process
 import model/query_engine
-import model/property_graph
+//import model/property_graph
+import model/property_graph.{type Edge}
 import model/graph_mapper
 import model/supervision
+import model/connected_components
 
 
 pub fn main() {
   case supervision.start() {
   Ok(process) -> {
 // Create our sample property graph with meaningful telecom network data
-let prop_graph = property_graph.create_graph()
+let prop_graph = property_graph.create_large_graph()
 let triple_store = graph_mapper.graph_to_triple_store(prop_graph)
 
 io.println("\n=== 1. Demonstrating Hybrid Graph Model ===")
@@ -63,6 +67,57 @@ case query_engine.parse_query("sparql \"SELECT ?router WHERE {?router rdf:type n
 Ok(query) -> {
 supervision.send_message(process, supervision.ExecuteQuery(query, prop_graph, triple_store))
 process.sleep(100)
+
+
+io.println("\n=== 3. Connected Components Analysis ===")
+
+io.println("\nA. Initial Graph Components:")
+let components = connected_components.find_components(prop_graph)
+io.println(connected_components.format_components(components))
+
+io.println("\nB. Removing a bridge edge (router_4 -- router_5):")
+let edges = property_graph.get_edges(prop_graph)
+let filtered_edges = list.filter(
+edges,
+fn(edge) {
+case edge {
+property_graph.Edge(from, to, _, _) -> {
+case from, to {
+"router_4", "router_5" -> False
+"router_5", "router_4" -> False
+_, _ -> True
+}
+}
+}
+}
+)
+
+// Create new graph with edge removed
+let graph_without_bridge = property_graph.new()
+|> fn(g) {
+let nodes = property_graph.get_nodes(prop_graph)
+dict.fold(
+nodes,
+g,
+fn(graph, _key, node) { property_graph.add_node(graph, node) }
+)
+}
+|> fn(g) {
+list.fold(
+filtered_edges,
+g,
+fn(graph, edge) {
+case property_graph.add_edge(graph, edge) {
+Ok(updated) -> updated
+Error(_) -> graph
+}
+}
+)
+}
+
+let components_after = connected_components.find_components(graph_without_bridge)
+io.println(connected_components.format_components(components_after))
+
 }
 Error(err) -> io.println("Error: " <> err)
 }

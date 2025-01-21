@@ -1,4 +1,5 @@
 import gleam/dict
+import gleam/list
 
 
 // Property value type
@@ -64,9 +65,9 @@ pub fn add_edge(graph: PropertyGraph, edge: Edge) -> Result(PropertyGraph, Strin
 
 // Helper to create a new node
 pub fn create_node(
-id: String,
-node_type: String,
-properties: List(#(String, PropertyValue))
+  id: String,
+  node_type: String,
+  properties: List(#(String, PropertyValue))
 ) -> Node {
   Node(
   id: id,
@@ -77,10 +78,10 @@ properties: List(#(String, PropertyValue))
 
 // Helper to create a new edge
 pub fn create_edge(
-from: String,
-to: String,
-label: String,
-properties: List(#(String, PropertyValue))
+  from: String,
+  to: String,
+  label: String,
+  properties: List(#(String, PropertyValue))
 ) -> Edge {
   Edge(
   from: from,
@@ -131,4 +132,85 @@ pub fn create_graph() -> PropertyGraph {
     Ok(updated_graph) -> updated_graph
     Error(_) -> graph
   }
+}
+
+pub fn create_large_graph() -> PropertyGraph {
+  let graph = new()
+
+  // Create router nodes with properties (unchanged)
+  let routers = [
+  create_node(
+  "router_1",
+  "Router",
+  [#("status", StringValue("active"))]
+  ),
+  create_node(
+  "router_2",
+  "Router",
+  [#("status", StringValue("active"))]
+  ),
+  create_node(
+  "router_3",
+  "Router",
+  [#("status", StringValue("active"))]
+  ),
+  create_node(
+  "router_4",
+  "Router",
+  [#("status", StringValue("active"))]
+  ),
+  create_node(
+  "router_5",
+  "Router",
+  [#("status", StringValue("active"))]
+  ),
+  create_node(
+  "router_6",
+  "Router",
+  [#("status", StringValue("active"))]
+  )
+  ]
+
+  // Add all nodes to graph
+  let graph = list.fold(
+  routers,
+  graph,
+  fn(g, node) { add_node(g, node) }
+  )
+
+  // Create edges with properties - removing redundant connections
+  let edges = [
+  create_edge(
+  "router_1", "router_2", "CONNECTS_TO",
+  [#("bandwidth", NumberValue(1000.0))]
+  ),
+  create_edge(
+  "router_2", "router_3", "CONNECTS_TO",
+  [#("bandwidth", NumberValue(1000.0))]
+  ),
+  create_edge(
+  "router_3", "router_4", "CONNECTS_TO",
+  [#("bandwidth", NumberValue(1000.0))]
+  ),
+  create_edge(
+  "router_4", "router_5", "CONNECTS_TO",
+  [#("bandwidth", NumberValue(1000.0))]
+  ),
+  create_edge(
+  "router_5", "router_6", "CONNECTS_TO",
+  [#("bandwidth", NumberValue(1000.0))]
+  )
+  ]
+
+  // Add all edges to graph
+  list.fold(
+  edges,
+  graph,
+  fn(g, edge) {
+    case add_edge(g, edge) {
+      Ok(updated) -> updated
+      Error(_) -> g
+    }
+  }
+  )
 }
