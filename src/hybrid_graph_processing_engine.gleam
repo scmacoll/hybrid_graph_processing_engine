@@ -2,6 +2,7 @@
 import gleam/io
 import gleam/list
 import gleam/dict
+import gleam/set
 import gleam/erlang/process
 import model/query_engine
 //import model/property_graph
@@ -117,6 +118,52 @@ Error(_) -> graph
 
 let components_after = connected_components.find_components(graph_without_bridge)
 io.println(connected_components.format_components(components_after))
+
+// In hybrid_graph_processing_engine.gleam
+
+io.println("\nC. Restoring bridge edge to demonstrate recovery:")
+let restored_graph = property_graph.new()
+|> fn(g) {
+let nodes = property_graph.get_nodes(prop_graph)
+dict.fold(
+nodes,
+g,
+fn(graph, _key, node) { property_graph.add_node(graph, node) }
+)
+}
+|> fn(g) {
+// Add back all original edges including the bridge
+let original_edges = property_graph.get_edges(prop_graph)
+list.fold(
+original_edges,
+g,
+fn(graph, edge) {
+case property_graph.add_edge(graph, edge) {
+Ok(updated) -> updated
+Error(_) -> graph
+}
+}
+)
+}
+
+io.println("\nD. Final topology analysis after recovery:")
+let components_final = connected_components.find_components(restored_graph)
+io.println(connected_components.format_components(components_final))
+
+// Verify topology is fully restored
+io.println("\nE. Topology verification:")
+let verification = case components_final {
+[single_component] -> {
+// We need to convert the set to a list to check its size
+let size = set.size(single_component)
+case size {
+6 -> "✓ Network fully restored - all nodes in single component"
+_ -> "! Warning: Network not fully restored (unexpected component size)"
+}
+}
+_ -> "! Warning: Network not fully restored (multiple components remain)"
+}
+io.println(verification)
 
 }
 Error(err) -> io.println("Error: " <> err)
