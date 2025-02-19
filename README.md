@@ -1,24 +1,67 @@
-# hybrid_graph_processing_engine
+# Hybrid Graph Processing Engine
 
-[![Package Version](https://img.shields.io/hexpm/v/hybrid_graph_processing_engine)](https://hex.pm/packages/hybrid_graph_processing_engine)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/hybrid_graph_processing_engine/)
+A prototype graph processing engine that demonstrates the unification of property graphs and triple stores, with built-in fault tolerance for telecom network analysis.
 
-```sh
-gleam add hybrid_graph_processing_engine@1
+## Overview
+
+This prototype demonstrates a novel approach to graph data management by combining property graphs and triple stores, with particular focus on telecom network topology analysis. The system leverages Gleam's functional paradigm and Erlang's supervision trees for fault tolerance.
+
+## Key Features
+
+### 1. Hybrid Graph Model
+- Property graph representation for intuitive network modelling
+- Automatic conversion to triple store with relationship reification
+- Support for both Cypher and SPARQL queries
+
+### 2. Fault Tolerance
+- Erlang-style supervision for resilient query execution
+- Graceful error handling and recovery
+- Simulated fault scenarios for demonstration
+
+### 3. Network Analysis
+- Connected components detection
+- Network partition simulation
+- Topology verification and recovery confirmation
+
+## Technical Implementation
+
+### Property Graph Model
+- Nodes represent network elements (e.g., routers)
+- Edges represent physical connections
+- Properties capture operational attributes
+
+### Triple Store Integration
+- Relationship reification for advanced querying
+- Consistent mapping between graph models
+- Unified query interface
+
+### Fault Tolerance
+- Supervision tree for query execution
+- Error recovery mechanisms
+- State monitoring and restoration
+
+## Running the Demo
+
+```bash
+gleam run
 ```
-```gleam
-import hybrid_graph_processing_engine
 
-pub fn main() {
-  // TODO: An example of the project in use
-}
-```
+### The demo will showcase:
 
-Further documentation can be found at <https://hexdocs.pm/hybrid_graph_processing_engine>.
+Graph model visualisation in both property and triple store formats
+Fault tolerance through supervised query execution
+Network topology analysis with simulated failures
 
-## Development
+## Project Structure
 
-```sh
-gleam run   # Run the project
-gleam test  # Run the tests
-```
+- `property_graph.gleam`: Core property graph implementation
+- `triple_store.gleam`: Triple store representation
+- `graph_mapper.gleam`: Conversion between graph models
+- `connected_components.gleam`: Network topology analysis
+- `supervision.gleam`: Fault tolerance implementation
+- `query_engine.gleam`: Query processing for both models
+
+## Technical Requirements
+
+- Gleam
+- Erlang/OTP
